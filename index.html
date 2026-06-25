@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Syrma SGS – Machine Breakdown Monitoring System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.2/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+<!-- ========== LOGIN SCREEN ========== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box glass">
+    <div class="login-brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <strong>Syrma SGS</strong>
+        <span>Breakdown Monitor</span>
+      </div>
+    </div>
+    <h2 class="login-title">Sign in to continue</h2>
+    <p class="login-sub">Enter your User ID and password to access the dashboard.</p>
+
+    <div class="field mt16">
+      <label>User ID</label>
+      <input class="field-input" id="loginUserId" placeholder="e.g. Shekharpanwar" autocomplete="username">
+    </div>
+    <div class="field mt8">
+      <label>Password</label>
+      <input class="field-input" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn btn-primary btn-block mt16" id="loginSubmitBtn">Sign In</button>
+    <button class="btn btn-ghost btn-block mt8" id="openPasswordRequestBtn">Request ID / Password Change</button>
+
+    <div class="login-foot">Syrma SGS Technology · Machine Breakdown Monitor</div>
+  </div>
+</div>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<div class="app-shell" id="appShell" style="display:none;">
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-text">
+        <strong>Syrma SGS</strong>
+        <span>Breakdown Monitor</span>
+      </div>
+    </div>
+
+    <div class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" data-view="scan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M3 17v2a2 2 0 0 0 2 2h2M21 7V5a2 2 0 0 0-2-2h-2M21 17v2a2 2 0 0 1-2 2h-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+      <span>Scan QR</span>
+    </div>
+    <div class="nav-item" data-view="live">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+      <span>Live Breakdowns</span>
+      <span class="badge" id="liveBadge">0</span>
+    </div>
+    <div class="nav-item" data-view="machines">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Machines</span>
+    </div>
+    <div class="nav-item" data-view="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      <span>Breakdown History</span>
+    </div>
+    <div class="nav-item" data-view="analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>
+      <span>Analytics</span>
+    </div>
+    <div class="nav-item" data-view="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Master Data</span>
+    </div>
+    <div class="nav-item admin-only" data-view="requests" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Requests</span>
+      <span class="badge" id="requestsBadge">0</span>
+    </div>
+    <div class="nav-item admin-only" data-view="audit" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Audit Log</span>
+    </div>
+
+    <div class="nav-spacer"></div>
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="sidebar-user-info">
+        <strong id="sidebarUserName">—</strong>
+        <span id="sidebarUserRole">—</span>
+      </div>
+      <button class="icon-btn" id="logoutBtn" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="sidebar-foot">
+      Syrma SGS Technology<br>Machine Breakdown Monitor v2.0
+    </div>
+  </aside>
+
+  <!-- ========== MAIN COLUMN ========== -->
+  <div class="main-col">
+
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="icon-btn mobile-toggle" id="menuToggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </div>
+        <div>
+          <div class="topbar-title" id="topbarTitle">Dashboard</div>
+          <div class="topbar-sub" id="topbarSub">Real-time machine breakdown overview</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-pill"><span class="live-dot"></span> <span id="clockDisplay">--:--:--</span></div>
+        <div class="live-pill" title="Supabase cloud sync status"><span id="liveStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--status-warn);display:inline-block;"></span> <span id="liveStatusLabel" style="font-size:12px;">Connecting…</span></div>
+        <div class="icon-btn" id="themeToggle" title="Toggle dark/light mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="themeIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- ============ DASHBOARD VIEW ============ -->
+      <div class="view active" id="view-dashboard">
+
+        <div class="flex-between mt8">
+          <div class="tab-row" id="dateRangeTabs">
+            <button class="tab-btn active" data-range="today">Today</button>
+            <button class="tab-btn" data-range="week">This Week</button>
+            <button class="tab-btn" data-range="month">This Month</button>
+            <button class="tab-btn" data-range="custom">Custom Range</button>
+          </div>
+          <div class="field-row" id="customRangeRow" style="display:none;">
+            <input type="date" class="field-input" id="customFrom" style="padding:9px 11px;">
+            <input type="date" class="field-input" id="customTo" style="padding:9px 11px;">
+            <button class="btn btn-primary btn-sm" id="applyCustomRange">Apply</button>
+          </div>
+        </div>
+
+        <div class="section-title">Overall Statistics</div>
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="section-title">Machine-Wise Dashboard</div>
+        <div class="panel glass">
+          <div class="panel-head">
+            <div class="search-bar" style="max-width:300px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input type="text" id="machineSearch" placeholder="Search machine, area, line, customer...">
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-sm" id="exportMachinesCsv">Export CSV</button>
+              <button class="btn btn-sm" id="exportMachinesXlsx">Export Excel</button>
+              <button class="btn btn-sm" id="printDashboard">Print Report</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="machineTable">
+              <thead><tr>
+                <th data-key="area">Area</th>
+                <th data-key="line">Line</th>
+                <th data-key="customer">Customer</th>
+                <th data-key="machine">Machine</th>
+                <th data-key="assetNo">Asset No</th>
+                <th data-key="status">Status</th>
+                <th data-key="mttr">MTTR (min)</th>
+                <th data-key="mtbf">MTBF (min)</th>
+                <th data-key="failures">Failures</th>
+              </tr></thead>
+              <tbody id="machineTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCAN VIEW ============ -->
+      <div class="view" id="view-scan">
+        <div class="panel glass" style="max-width:560px;margin:0 auto;">
+          <div class="panel-head"><h3>Scan Machine QR Code</h3></div>
+          <div class="scanner-wrap" id="scannerWrap">
+            <div class="scanner-frame" id="scannerFrame">
+              <video id="qrVideo" playsinline muted></video>
+              <div class="scan-reticle"></div>
+              <div class="scan-line"></div>
+            </div>
+            <div class="scanner-status" id="scannerStatus">Camera idle. Tap "Start Camera" to begin scanning.</div>
+            <div class="scanner-controls">
+              <button class="btn btn-primary" id="startCameraBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                Start Camera
+              </button>
+              <button class="btn btn-danger hide" id="stopCameraBtn">Stop Camera</button>
+              <button class="btn" id="manualLookupBtn">Manual Entry</button>
+            </div>
+          </div>
+
+          <div id="scanResultArea" class="mt16"></div>
+        </div>
+      </div>
+
+      <!-- ============ LIVE VIEW ============ -->
+      <div class="view" id="view-live">
+        <div class="section-title">Currently in Breakdown</div>
+        <div class="live-grid" id="liveGrid"></div>
+      </div>
+
+      <!-- ============ MACHINES (MASTER) VIEW ============ -->
+      <div class="view" id="view-machines">
+        <div class="flex-between">
+          <div class="search-bar" style="max-width:320px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="machinesMasterSearch" placeholder="Search machines...">
+          </div>
+          <button class="btn btn-primary" id="addMachineBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Machine
+          </button>
+        </div>
+        <div class="field-row mt8" style="flex-wrap:wrap;">
+          <select class="field-input" id="filterArea" style="max-width:180px;"><option value="">All Areas</option></select>
+          <select class="field-input" id="filterLine" style="max-width:180px;"><option value="">All Lines</option></select>
+          <select class="field-input" id="filterCustomer" style="max-width:180px;"><option value="">All Customers</option></select>
+          <select class="field-input" id="filterStatus" style="max-width:160px;">
+            <option value="">All Status</option>
+            <option value="running">Running</option>
+            <option value="breakdown">Breakdown</option>
+          </select>
+        </div>
+        <div class="panel glass mt16">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr>
+                <th>Area</th><th>Line</th><th>Customer</th><th>Machine</th><th>Asset No</th><th>Serial No</th><th>Install Date</th><th>Status</th><th>QR Code</th><th></th>
+              </tr></thead>
+              <tbody id="machinesMasterBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ HISTORY VIEW ============ -->
+      <div class="view" id="view-history">
+        <div class="flex-between">
+          <div class="tab-row" id="historyRangeTabs">
+            <button class="tab-btn active" data-range="all">All Time</button>
+            <button class="tab-btn" data-range="today">Today</button>
+            <button class="tab-btn" data-range="week">This Week</button>
+            <button class="tab-btn" data-range="month">This Month</button>
+          </div>
+          <div class="search-bar" style="max-width:280px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="historySearch" placeholder="Search history...">
+          </div>
+        </div>
+        <div class="panel glass mt16">
+          <div class="panel-head">
+            <h3>Breakdown History</h3>
+            <div class="panel-actions">
+              <button class="btn btn-sm" id="exportHistoryCsv">Export CSV</button>
+              <button class="btn btn-sm" id="exportHistoryXlsx">Export Excel</button>
+              <button class="btn btn-sm" id="downloadMonthlyReport">Monthly Report</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="historyTable">
+              <thead><tr>
+                <th data-key="failDate">Failure Date</th>
+                <th data-key="failTime">Failure Time</th>
+                <th data-key="repairDate">Repair Date</th>
+                <th data-key="repairTime">Repair Time</th>
+                <th data-key="duration">Downtime</th>
+                <th data-key="area">Area</th>
+                <th data-key="line">Line</th>
+                <th data-key="machine">Machine</th>
+                <th data-key="customer">Customer</th>
+              </tr></thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ANALYTICS VIEW ============ -->
+      <div class="view" id="view-analytics">
+        <div class="section-title">Area-Wise MTTR &amp; MTBF</div>
+        <div class="chart-grid">
+          <div class="chart-card glass"><h4>MTTR by Area (minutes)</h4><canvas id="chartMttrArea"></canvas></div>
+          <div class="chart-card glass"><h4>MTBF by Area (minutes)</h4><canvas id="chartMtbfArea"></canvas></div>
+        </div>
+
+        <div class="section-title">Line-Wise MTTR &amp; MTBF</div>
+        <div class="chart-grid">
+          <div class="chart-card glass"><h4>MTTR by Line (minutes)</h4><canvas id="chartMttrLine"></canvas></div>
+          <div class="chart-card glass"><h4>MTBF by Line (minutes)</h4><canvas id="chartMtbfLine"></canvas></div>
+        </div>
+
+        <div class="section-title">Machine-Wise MTTR &amp; MTBF</div>
+        <div class="chart-grid">
+          <div class="chart-card glass"><h4>MTTR by Machine (minutes)</h4><canvas id="chartMttr"></canvas></div>
+          <div class="chart-card glass"><h4>MTBF by Machine (minutes)</h4><canvas id="chartMtbf"></canvas></div>
+        </div>
+
+        <div class="section-title">Other Trends</div>
+        <div class="chart-grid">
+          <div class="chart-card glass"><h4>Breakdown Count by Line</h4><canvas id="chartLineBreak"></canvas></div>
+          <div class="chart-card glass"><h4>Downtime Trend (last 14 days)</h4><canvas id="chartDowntimeTrend"></canvas></div>
+          <div class="chart-card glass" style="grid-column:1/-1;"><h4>Monthly Failure Trend</h4><canvas id="chartMonthlyFailures"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ============ SETTINGS / MASTER DATA VIEW ============ -->
+      <div class="view" id="view-settings">
+        <div class="panel glass">
+          <div class="panel-head"><h3>Master Data Lists</h3></div>
+          <p class="text-sm text-muted">Manage dropdown options for Area, Production Line, and Customer. These appear as selectable options during manual entry and machine creation.</p>
+          <div class="form-grid mt16">
+            <div class="field">
+              <label>Areas</label>
+              <div class="field-row"><input class="field-input" id="newAreaInput" placeholder="Add new area..."><button class="btn btn-sm" id="addAreaBtn">Add</button></div>
+              <div id="areaList" class="mt8 text-sm text-muted"></div>
+            </div>
+            <div class="field">
+              <label>Production Lines</label>
+              <div class="field-row"><input class="field-input" id="newLineInput" placeholder="Add new line..."><button class="btn btn-sm" id="addLineBtn">Add</button></div>
+              <div id="lineList" class="mt8 text-sm text-muted"></div>
+            </div>
+            <div class="field">
+              <label>Customers</label>
+              <div class="field-row"><input class="field-input" id="newCustomerInput" placeholder="Add new customer..."><button class="btn btn-sm" id="addCustomerBtn">Add</button></div>
+              <div id="customerList" class="mt8 text-sm text-muted"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel glass">
+          <div class="panel-head">
+            <h3>Data Management</h3>
+          </div>
+          <p class="text-sm text-muted mt8">All data is stored in your secure Syrma SGS cloud database (Supabase) and synced in real time across every signed-in user and device. A local browser cache is also kept automatically so the app keeps working briefly if your connection drops.</p>
+        </div>
+      </div>
+
+      <!-- ============ PASSWORD CHANGE REQUESTS (ADMIN) VIEW ============ -->
+      <div class="view" id="view-requests">
+        <div class="panel glass">
+          <div class="panel-head"><h3>ID / Password Change Requests</h3></div>
+          <p class="text-sm text-muted">Requests submitted by users from the login screen. Review and resolve them here — no email server is configured, so this in-app list is the system of record. Resolving a request does not change the user's credentials automatically; use Supabase Auth to perform the actual change, then mark it resolved here.</p>
+          <div class="table-wrap mt16">
+            <table class="data-table">
+              <thead><tr>
+                <th>Submitted</th><th>Current User ID</th><th>Name</th><th>Email</th><th>Requested New ID</th><th>Reason</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody id="requestsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ AUDIT LOG (ADMIN) VIEW ============ -->
+      <div class="view" id="view-audit">
+        <div class="flex-between">
+          <div class="search-bar" style="max-width:320px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="auditSearch" placeholder="Search audit log...">
+          </div>
+          <button class="btn btn-sm" id="refreshAuditBtn">Refresh</button>
+        </div>
+        <div class="panel glass mt16">
+          <div class="panel-head"><h3>Activity Log</h3></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr>
+                <th>Date</th><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>Device</th>
+              </tr></thead>
+              <tbody id="auditTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
+
+
+
+
+
